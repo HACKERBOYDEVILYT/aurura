@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # 1. Fullstack API & Streaming Service
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: arura-streaming-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://arura_admin:arura_secure_password_2026@postgres:5432/arura_db
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JWT_SECRET=arura_jwt_production_secret_key_9918237
+      - APP_URL=http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - arura-network
+
+  # 2. PostgreSQL 16 Relational Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: arura-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: arura_db
+      POSTGRES_USER: arura_admin
+      POSTGRES_PASSWORD: arura_secure_password_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arura_admin -d arura_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - arura-network
+
+  # 3. Redis 7 Cache & Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: arura-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass arura_redis_secure_pass
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "arura_redis_secure_pass", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - arura-network
+
+  # 4. Celery Asynchronous Task Worker (Python Background Jobs)
+  celery_worker:
+    image: python:3.11-slim
+    container_name: arura-celery-worker
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./backend:/app/backend
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DATABASE_URL=postgresql://arura_admin:arura_secure_password_2026@postgres:5432/arura_db
+      - CELERY_BROKER_URL=redis://:arura_redis_secure_pass@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:arura_redis_secure_pass@redis:6379/2
+    command: >
+      bash -c "pip install django djangorestframework celery redis psycopg2-binary &&
+               echo 'Celery worker initialized for media transcoding, EPG ingestion and recommendation caching' &&
+               sleep infinity"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - arura-network
+
+networks:
+  arura-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

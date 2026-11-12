@@ -1,0 +1,6 @@
+{
+  "name": "Arura - All-in-One Entertainment Streaming Platform",
+  "description": "Premium all-in-one entertainment streaming platform featuring Movies, TV Series, Live TV with EPG, Live Sports, Bangla Natok & Telefilms, YouTube & Shorts, and AI-powered mood recommendations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
