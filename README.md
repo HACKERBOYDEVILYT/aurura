@@ -92,7 +92,28 @@ npm run dev
 ```
 The application will launch on `http://localhost:3000`.
 
-### 2. Run with Docker Compose (Recommended for Full Stack)
+### 2. Push to GitHub & Deploy as Live Website (1-Click Hosting)
+This project is production-ready for instant live web hosting:
+1. **Push to GitHub**:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit - Arura Streaming Platform"
+   git branch -M main
+   git remote add origin https://github.com/<your-username>/<your-repo-name>.git
+   git push -u origin main
+   ```
+2. **Deploy on Vercel (Fastest & Free)**:
+   - Visit [vercel.com](https://vercel.com) -> Click **Add New Project**.
+   - Select your GitHub repository.
+   - Vercel automatically detects Vite + React (`npm run build`).
+   - Click **Deploy** -> Get a live `.vercel.app` URL immediately!
+3. **Deploy on Render / Railway (Full-Stack with Node Backend)**:
+   - Create a Web Service -> Connect GitHub repo.
+   - Build Command: `npm install && npm run build`
+   - Start Command: `npm start` (or `tsx server.ts`)
+
+### 3. Run with Docker Compose (Recommended for Full Stack)
 ```bash
 docker-compose up --build
 ```
