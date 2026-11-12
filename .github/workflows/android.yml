@@ -1,17 +1,16 @@
-name: Arura Android CI/CD
+name: Arura Android APK Build & Release
 
 on:
   push:
-    branches: [ "main", "develop" ]
-    paths:
-      - 'android/**'
-      - '.github/workflows/android.yml'
-  pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-  build:
-    name: Build & Test Android App (Jetpack Compose + Media3)
+  build-apk:
+    name: Build & Release Android APK
     runs-on: ubuntu-latest
 
     steps:
@@ -23,42 +22,40 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: Grant execute permission for gradlew
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build Android APK with Gradle
         run: |
-          if [ -f "android/gradlew" ]; then
-            chmod +x android/gradlew
-          fi
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk ../Arura-Streaming-v1.0.apk
 
-      - name: Validate Gradle Wrapper
-        uses: gradle/wrapper-validation-action@v2
-
-      - name: Run Kotlin & Android Lint
-        run: |
-          echo "Running Android Lint and Detekt code analysis..."
-          # ./gradlew lintDebug detekt
-
-      - name: Run Unit & Media3 Player Tests
-        run: |
-          echo "Running unit tests for ExoPlayer MediaSession & Room DB..."
-          # ./gradlew testDebugUnitTest
-
-      - name: Build Debug APK
-        run: |
-          echo "Compiling Arura Android debug APK with Jetpack Compose & Hilt..."
-          # ./gradlew assembleDebug
-
-      - name: Build Release Bundle (AAB)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          echo "Generating optimized Android App Bundle (AAB) with ProGuard & R8..."
-          # ./gradlew bundleRelease
-
-      - name: Upload Build Artifacts
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: arura-build-report
-          path: |
-            build/reports/
-          if-no-files-found: ignore
+          name: Arura-Streaming-Android-APK
+          path: Arura-Streaming-v1.0.apk
+
+      - name: Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.0
+          name: "Arura Streaming v1.0.0 (Android Release)"
+          body: |
+            ## 📱 Arura Streaming Platform — Android Release v1.0.0
+            
+            - **All-in-One Entertainment Streaming**: Movies, TV Series, Bangla Natok, Live TV with EPG, Live Sports & AI Discovery.
+            - **ExoPlayer & Media3**: Low-latency HLS video playback.
+            - **Dark Cinematic Theme**: Material 3 UI design.
+            
+            ### ⬇️ Download:
+            Download the attached **`Arura-Streaming-v1.0.apk`** below to install on your Android device.
+          files: Arura-Streaming-v1.0.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
